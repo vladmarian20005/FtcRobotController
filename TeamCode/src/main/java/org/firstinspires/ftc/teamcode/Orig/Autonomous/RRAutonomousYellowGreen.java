@@ -14,8 +14,8 @@ import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
 import java.util.List;
 
-@Autonomous
-public class RRAutonomousLeft extends LinearOpMode {
+@Autonomous(name = "AutoYellowGreen", group = "ORIG")
+public class RRAutonomousYellowGreen extends LinearOpMode {
     //Declare webcam
     private String webcamName = "Webcam";
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
@@ -66,12 +66,14 @@ public class RRAutonomousLeft extends LinearOpMode {
 
         while (!isStarted()) {
             telemetryTfod();
-
             // Push telemetry to the Driver Station.
             telemetry.update();
         }
         visionPortal.close();
         waitForStart();
+        if(opModeIsActive()) {
+
+        }
     }
 
     //Tfod function
