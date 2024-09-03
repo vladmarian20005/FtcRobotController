@@ -29,6 +29,7 @@
 
 package org.firstinspires.ftc.robotcontroller.external.samples;
 
+import android.os.Environment;
 import android.util.Size;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -49,12 +50,13 @@ import java.util.List;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
-@Disabled
+//@Disabled
 @TeleOp(name = "Concept: TensorFlow Object Detection", group = "Concept")
 public class ConceptTensorFlowObjectDetection extends LinearOpMode {
 
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
-    private static final String TFOD_MODEL_FILE = "/sdcard/FIRST/tflitemodels/prop.tflite";
+    private static final String TFOD_MODEL_FILE = "/sdcard/FIRST/tflitemodels/orig.tflite";
+   // private static final String TFOD_MODEL_FILE = Environment.getExternalStorageDirectory().getPath();
     private static final String[] LABELS = {
             "Left", "Center", "Right"
     };
