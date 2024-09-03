@@ -52,8 +52,8 @@ public class RRTeleOp extends LinearOpMode {
         armMotorRight = hardwareMap.dcMotor.get("SR");
 
         //init servos
-        leftBall = hardwareMap.servo.get("LB");
-        rightBall = hardwareMap.servo.get("RB");
+       // leftBall = hardwareMap.servo.get("LB");
+        //rightBall = hardwareMap.servo.get("RB");
 
         controller = new ArmEncoder(armMotorLeft, armMotorRight);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
