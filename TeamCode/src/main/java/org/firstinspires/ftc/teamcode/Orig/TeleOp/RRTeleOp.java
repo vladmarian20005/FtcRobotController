@@ -103,6 +103,12 @@ public class RRTeleOp extends LinearOpMode {
                 telemetry.addData("Heading reseted to: ", PoseStorage.currentPose);
                 telemetry.update();
             }
+            if(gamepad1.dpad_up) {
+                controller.goTo(4500,4500);
+            }
+            if(gamepad1.dpad_down) {
+                controller.goTo(0,0);
+            }
 
         }
     }
