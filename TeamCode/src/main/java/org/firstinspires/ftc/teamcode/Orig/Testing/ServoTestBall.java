@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
 
 @TeleOp(name = "ServoTest", group = "ORIG- TEST")
 public class ServoTestBall extends LinearOpMode {
-    private CRServo leftBall, rightBall;
+    private CRServo  leftBall, rightBall;
 
     public void runOpMode() throws InterruptedException{
         leftBall = hardwareMap.crservo.get("LB");
@@ -14,10 +14,13 @@ public class ServoTestBall extends LinearOpMode {
 
         waitForStart();
 
-        if(gamepad1.x) {
-            servoPower(leftBall,rightBall);
-        } else {
-            stopServo(leftBall,rightBall);
+        while(opModeIsActive()) {
+            if (gamepad1.x) {
+                servoPower(leftBall, rightBall);
+            } else {
+                stopServo(leftBall, rightBall);
+            }
+
         }
 
     }
