@@ -1,78 +1,96 @@
 package org.firstinspires.ftc.teamcode.Orig.TeleOp;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
+
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.teamcode.Autonomous.SleeveDetection;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvPipeline;
+import org.openftc.easyopencv.OpenCvWebcam;
 
-@TeleOp(name = "TEST OPEN CV", group = "Test")
+import java.util.ArrayList;
+import java.util.List;
+
+@TeleOp(name="OpenCV TEST")
 public class openCV extends LinearOpMode {
+    OpenCvWebcam webcam;
+    private static final int CAMERA_WIDTH  = 640; // width  of wanted camera resolution
+    private static final int CAMERA_HEIGHT = 360;
 
+
+    private double CrLowerUpdate = 50;
+    private double CbLowerUpdate = 100;
+    private double CrUpperUpdate = 137;
+    private double CbUpperUpdate = 120;
+
+    public static double borderLeftX    = 0.0;   //fraction of pixels from the left side of the cam to skip
+    public static double borderRightX   = 0.0;   //fraction of pixels from the right of the cam to skip
+    public static double borderTopY     = 0.0;   //fraction of pixels from the top of the cam to skip
+    public static double borderBottomY  = 0.0;   //fraction of pixels from the bottom of the cam to skip
+
+    private double lowerruntime = 0;
+    private double upperruntime = 0;
+
+    // Pink Range                                      Y      Cr     Cb
+    public static Scalar scalarLowerYCrCb = new Scalar(  0.0, 50, 100.0);
+    public static Scalar scalarUpperYCrCb = new Scalar(37, 140, 124);
     @Override
-    public void runOpMode() throws InterruptedException {
+    public void runOpMode()
+    {
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        WebcamName webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
-        OpenCvCamera camera = OpenCvCameraFactory.getInstance().createWebcam(webcamName, cameraMonitorViewId);
-        // Add telemetry to track the initialization process
-        telemetry.addData("Status", "Initializing Camera");
-        telemetry.update();
-
-        camera.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+        webcam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
+        ContourPipeline pipeline;
+        webcam.setPipeline(pipeline = new ContourPipeline(borderLeftX,borderRightX,borderTopY,borderBottomY));
+        pipeline.configureScalarLower(scalarLowerYCrCb.val[0],scalarLowerYCrCb.val[1],scalarLowerYCrCb.val[2]);
+        pipeline.configureScalarUpper(scalarUpperYCrCb.val[0],scalarUpperYCrCb.val[1],scalarUpperYCrCb.val[2]);
+        webcam.setMillisecondsPermissionTimeout(5000); // Timeout for obtaining permission is configurable. Set before opening.
+        webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
+        {
             @Override
-            public void onOpened() {
-                telemetry.addData("Status", "Camera Opened Successfully");
-                telemetry.update();
-
-                // Start streaming at a standard resolution
-                camera.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+            public void onOpened()
+            {
+                webcam.startStreaming(CAMERA_WIDTH, CAMERA_HEIGHT, OpenCvCameraRotation.UPRIGHT);
             }
 
             @Override
-            public void onError(int errorCode) {
-                telemetry.addData("Camera Error", "Error Code: " + errorCode);
-                telemetry.update();
+            public void onError(int errorCode)
+            {
+
             }
         });
-
-        // Initialize the detector pipeline
-        OpenCVCameraTest detector = new OpenCVCameraTest(telemetry);
-        camera.setPipeline(detector);
+        FtcDashboard dashboard = FtcDashboard.getInstance();
+        telemetry.addLine("Waiting for start");
+        telemetry.update();
 
         waitForStart();
 
-        while (opModeIsActive()) {
-            // Add telemetry to check if frames are being processed
-            telemetry.addData("Frame Count", camera.getFrameCount());
-            telemetry.addData("FPS", String.format("%.2f", camera.getFps()));
-            telemetry.addData("Total frame time ms", camera.getTotalFrameTimeMs());
-            telemetry.addData("Pipeline time ms", camera.getPipelineTimeMs());
-            telemetry.addData("Overhead time ms", camera.getOverheadTimeMs());
-            telemetry.addData("Theoretical max FPS", camera.getCurrentPipelineMaxFps());
+        while (opModeIsActive())
+        {
 
-            // Check and display the detector results
-            switch (detector.getLocation()) {
-                case LEFT:
-                    telemetry.addData("Detected", "Left");
-                    break;
-                case MIDDLE:
-                    telemetry.addData("Detected", "Middle");
-                    break;
-                case RIGHT:
-                    telemetry.addData("Detected", "Right");
-                    break;
-                default:
-                    telemetry.addData("Detected", "Unknown");
-                    break;
-            }
-
+            telemetry.addData("Frame Count", webcam.getFrameCount());
+            telemetry.addData("FPS", String.format("%.2f", webcam.getFps()));
+            telemetry.addData("Total frame time ms", webcam.getTotalFrameTimeMs());
+            telemetry.addData("Pipeline time ms", webcam.getPipelineTimeMs());
+            telemetry.addData("Overhead time ms", webcam.getOverheadTimeMs());
+            telemetry.addData("Theoretical max FPS", webcam.getCurrentPipelineMaxFps());
             telemetry.update();
-            sleep(100);  // Add a small delay to avoid overwhelming the telemetry
-        }
+            sleep(100);
 
-        // Stop the camera streaming once the op mode stops
-        camera.stopStreaming();
+        }
     }
 }
+

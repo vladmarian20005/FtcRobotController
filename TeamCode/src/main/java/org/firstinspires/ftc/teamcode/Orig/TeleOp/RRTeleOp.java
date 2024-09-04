@@ -4,12 +4,16 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.Functions.ArmEncoder;
 import org.firstinspires.ftc.teamcode.Functions.GamepadCalc;
+import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.AirLockServos;
+import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.BallServos;
+import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.ClawServos;
 import org.firstinspires.ftc.teamcode.RoadRunner.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.RoadRunner.drive.advanced.PoseStorage;
 
@@ -20,7 +24,10 @@ public class RRTeleOp extends LinearOpMode {
     private DcMotor armMotorLeft, armMotorRight;
 
     //Declare servos
-    private Servo leftBall, rightBall;
+    private CRServo leftBall, rightBall;
+    private Servo airLock1, airLock2;
+    private Servo getPUp;
+    private Servo closeClaw, rotateClaw;
 
     //Other declarations
     double integralSum = 0;
@@ -36,6 +43,10 @@ public class RRTeleOp extends LinearOpMode {
 
     //declare classes
     private ArmEncoder controller;
+    private BallServos ballServos;
+    private ClawServos clawServos;
+    private AirLockServos airLockServos;
+
     GamepadCalc gamepadCalc;
 
 
@@ -52,12 +63,21 @@ public class RRTeleOp extends LinearOpMode {
         armMotorRight = hardwareMap.dcMotor.get("SR");
 
         //init servos
-       // leftBall = hardwareMap.servo.get("LB");
-        //rightBall = hardwareMap.servo.get("RB");
+        leftBall = hardwareMap.crservo.get("LB");
+        rightBall = hardwareMap.crservo.get("RB");
+        airLock1 = hardwareMap.servo.get("AL1");
+        airLock2 = hardwareMap.servo.get("AL2");
+        getPUp = hardwareMap.servo.get("PU");
+        closeClaw = hardwareMap.servo.get("CS");
+        rotateClaw = hardwareMap.servo.get("RS");
 
+        //init classes
         controller = new ArmEncoder(armMotorLeft, armMotorRight);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
         gamepadCalc = new GamepadCalc(this);
+        ballServos = new BallServos(leftBall,rightBall);
+        clawServos = new ClawServos(closeClaw,rotateClaw);
+        airLockServos = new AirLockServos(airLock1,airLock2);
 
         rightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -71,7 +91,7 @@ public class RRTeleOp extends LinearOpMode {
         waitForStart();
 
         runtime.reset(); // Start game timer.
-
+        clawServos.RotateLeft();
         if (isStopRequested()) return;
         while(opModeIsActive() && !isStopRequested()) {
 
@@ -97,18 +117,36 @@ public class RRTeleOp extends LinearOpMode {
             drive.update();
             drive.update();
 
-            if(gamepad1.right_bumper)
+            if(gamepad2.right_bumper)
             {
                 drive.setPoseEstimate(PoseStorage.currentPose);
                 telemetry.addData("Heading reseted to: ", PoseStorage.currentPose);
                 telemetry.update();
             }
-            if(gamepad1.dpad_up) {
+            if(gamepad2.dpad_up) {
                 controller.goTo(4500,4500);
             }
-            if(gamepad1.dpad_down) {
+            if(gamepad2.dpad_down) {
                 controller.goTo(0,0);
             }
+            if(gamepad2.x) {
+                ballServos.Start();
+            } else {
+                ballServos.Stop();
+            }
+            if(gamepad2.a) {
+                ballServos.startInv();
+            } else {
+                ballServos.Stop();
+            }
+            if(gamepad2.y) {
+                clawServos.SwitchAndWaitClosed(1,getRuntime());
+            }
+            if(gamepad2.b) {
+                clawServos.SwitchAndWaitRotate(1,getRuntime());
+            }
+
+
 
         }
     }
@@ -125,5 +163,7 @@ public class RRTeleOp extends LinearOpMode {
         double output = (error * Kp) + (derivative * Kd) + (integralSum * Ki) + (reference * Kf);
         return output;
     }
+
+
 
 }

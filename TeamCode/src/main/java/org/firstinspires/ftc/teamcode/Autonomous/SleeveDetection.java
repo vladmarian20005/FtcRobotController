@@ -1,4 +1,6 @@
 package org.firstinspires.ftc.teamcode.Autonomous;
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
+
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -41,10 +43,13 @@ public class SleeveDetection extends OpenCvPipeline {
         // Determine the region with the most red
         if (redSumLeft > redSumCenter && redSumLeft > redSumRight) {
             redPosition = RedPosition.LEFT;
+            telemetry.addData("Detection: ", "LEFT");
         } else if (redSumCenter > redSumRight) {
             redPosition = RedPosition.CENTER;
+            telemetry.addData("Detection: ", "CENTER");
         } else {
             redPosition = RedPosition.RIGHT;
+            telemetry.addData("Detection: ","RIGHT");
         }
 
         return input;
@@ -60,7 +65,7 @@ public class SleeveDetection extends OpenCvPipeline {
         regionMat.release();
 
         // Return the red value (assuming BGR format)
-        return averageColor.val[2];
+        return averageColor.val[0];
     }
 
     public RedPosition getPosition() {
