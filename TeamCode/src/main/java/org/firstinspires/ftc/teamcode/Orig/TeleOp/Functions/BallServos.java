@@ -10,6 +10,7 @@ public class BallServos {
 
     public BallServos(CRServo _LB, CRServo _RB) {
         leftBall = _LB;
+
         rightBall = _RB;
         statusCr = false;
         statusInv = false;

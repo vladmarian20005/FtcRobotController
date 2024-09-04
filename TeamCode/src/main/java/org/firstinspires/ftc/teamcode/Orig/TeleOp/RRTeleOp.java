@@ -64,7 +64,7 @@ public class RRTeleOp extends LinearOpMode {
         rightMotorBack = hardwareMap.dcMotor.get("BR");
         armMotorLeft = hardwareMap.dcMotor.get("SL");
         armMotorRight = hardwareMap.dcMotor.get("SR");
-        clawArmMotor = hardwareMap.dcMotor.get("CM")
+        clawArmMotor = hardwareMap.dcMotor.get("CM");
 
         //init servos
         leftBall = hardwareMap.crservo.get("LB");
@@ -133,15 +133,21 @@ public class RRTeleOp extends LinearOpMode {
             if(gamepad2.dpad_down) {
                 controller.goTo(0,0);
             }
+//            if(gamepad2.x) {
+//                ballServos.startInv();
+//            } else {
+//                ballServos.Stop();
+//            }
+//            if(gamepad2.a) {
+//               ballServos.Start();
+//            } else {
+//                ballServos.Stop();
+//            }
             if(gamepad2.x) {
-                ballServos.Start();
-            } else {
-                ballServos.Stop();
+                ballServos.SwitchAndWaitContinuousInv(1,getRuntime());
             }
             if(gamepad2.a) {
-                ballServos.startInv();
-            } else {
-                ballServos.Stop();
+                ballServos.SwitchAndWaitContinuous(1,getRuntime());
             }
             if(gamepad2.y) {
                 clawServos.SwitchAndWaitClosed(1,getRuntime());
@@ -162,16 +168,16 @@ public class RRTeleOp extends LinearOpMode {
                 getPUp.setPosition(0);
             }
             if(gamepad1.dpad_left) {
-                clawArmEncoder.goTo(200);
+                clawArmEncoder.goTo(100);
             }
             if(gamepad1.dpad_up) {
-                clawArmEncoder.goTo(400);
+                clawArmEncoder.goTo(200);
             }
             if(gamepad1.dpad_right) {
-                clawArmEncoder.goTo(600);
+                clawArmEncoder.goTo(300);
             }
             if(gamepad1.dpad_down) {
-                clawArmEncoder.goTo(0);  
+                clawArmEncoder.goTo(0);
             }
 
         }
