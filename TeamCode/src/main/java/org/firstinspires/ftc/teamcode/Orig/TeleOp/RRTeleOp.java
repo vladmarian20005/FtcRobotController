@@ -13,6 +13,7 @@ import org.firstinspires.ftc.teamcode.Functions.ArmEncoder;
 import org.firstinspires.ftc.teamcode.Functions.GamepadCalc;
 import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.AirLockServos;
 import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.BallServos;
+import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.ClawArmEncoder;
 import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.ClawServos;
 import org.firstinspires.ftc.teamcode.RoadRunner.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.RoadRunner.drive.advanced.PoseStorage;
@@ -22,6 +23,7 @@ public class RRTeleOp extends LinearOpMode {
     //Declare motors
     private DcMotor leftMotor, rightMotor, leftMotorBack, rightMotorBack;
     private DcMotor armMotorLeft, armMotorRight;
+    private DcMotor clawArmMotor;
 
     //Declare servos
     private CRServo leftBall, rightBall;
@@ -46,6 +48,7 @@ public class RRTeleOp extends LinearOpMode {
     private BallServos ballServos;
     private ClawServos clawServos;
     private AirLockServos airLockServos;
+    private ClawArmEncoder clawArmEncoder;
 
     GamepadCalc gamepadCalc;
 
@@ -61,6 +64,7 @@ public class RRTeleOp extends LinearOpMode {
         rightMotorBack = hardwareMap.dcMotor.get("BR");
         armMotorLeft = hardwareMap.dcMotor.get("SL");
         armMotorRight = hardwareMap.dcMotor.get("SR");
+        clawArmMotor = hardwareMap.dcMotor.get("CM")
 
         //init servos
         leftBall = hardwareMap.crservo.get("LB");
@@ -78,6 +82,7 @@ public class RRTeleOp extends LinearOpMode {
         ballServos = new BallServos(leftBall,rightBall);
         clawServos = new ClawServos(closeClaw,rotateClaw);
         airLockServos = new AirLockServos(airLock1,airLock2);
+        clawArmEncoder = new ClawArmEncoder(clawArmMotor);
 
         rightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -100,8 +105,7 @@ public class RRTeleOp extends LinearOpMode {
 
             Pose2d poseEstimate = drive.getPoseEstimate();
             Vector2d input = new Vector2d(
-                    -
-                            gamepad1.left_stick_y,
+                    -gamepad1.left_stick_y,
                     -gamepad1.left_stick_x
             ).rotated(-poseEstimate.getHeading());
 
@@ -145,8 +149,30 @@ public class RRTeleOp extends LinearOpMode {
             if(gamepad2.b) {
                 clawServos.SwitchAndWaitRotate(1,getRuntime());
             }
-
-
+            if(gamepad2.left_bumper) {
+                airLockServos.rotateOpen();
+            }
+            if(gamepad2.right_bumper) {
+                airLockServos.rotateClose();
+            }
+            if(gamepad2.left_stick_button) {
+                getPUp.setPosition(1);
+            }
+            if(gamepad2.right_stick_button) {
+                getPUp.setPosition(0);
+            }
+            if(gamepad1.dpad_left) {
+                clawArmEncoder.goTo(200);
+            }
+            if(gamepad1.dpad_up) {
+                clawArmEncoder.goTo(400);
+            }
+            if(gamepad1.dpad_right) {
+                clawArmEncoder.goTo(600);
+            }
+            if(gamepad1.dpad_down) {
+                clawArmEncoder.goTo(0);  
+            }
 
         }
     }
@@ -163,7 +189,6 @@ public class RRTeleOp extends LinearOpMode {
         double output = (error * Kp) + (derivative * Kd) + (integralSum * Ki) + (reference * Kf);
         return output;
     }
-
 
 
 }
