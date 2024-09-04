@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.Functions.ArmEncoder;
+import org.firstinspires.ftc.teamcode.Functions.ArmServos;
 import org.firstinspires.ftc.teamcode.Functions.GamepadCalc;
 import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.AirLockServos;
 import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.BallServos;
@@ -49,6 +50,7 @@ public class RRTeleOp extends LinearOpMode {
     private ClawServos clawServos;
     private AirLockServos airLockServos;
     private ClawArmEncoder clawArmEncoder;
+    private ArmServos armServos;
 
     GamepadCalc gamepadCalc;
 
@@ -83,6 +85,7 @@ public class RRTeleOp extends LinearOpMode {
         clawServos = new ClawServos(closeClaw,rotateClaw);
         airLockServos = new AirLockServos(airLock1,airLock2);
         clawArmEncoder = new ClawArmEncoder(clawArmMotor);
+        armServos = new ArmServos(leftBall,rightBall);
 
         rightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -144,10 +147,10 @@ public class RRTeleOp extends LinearOpMode {
 //                ballServos.Stop();
 //            }
             if(gamepad2.x) {
-                ballServos.SwitchAndWaitContinuousInv(1,getRuntime());
+                armServos.SwitchAndWaitContinuousInv(1,getRuntime());
             }
             if(gamepad2.a) {
-                ballServos.SwitchAndWaitContinuous(1,getRuntime());
+                armServos.SwitchAndWaitContinuous(1,getRuntime());
             }
             if(gamepad2.y) {
                 clawServos.SwitchAndWaitClosed(1,getRuntime());
