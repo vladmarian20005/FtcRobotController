@@ -99,7 +99,11 @@ public class RRTeleOp extends LinearOpMode {
         waitForStart();
 
         runtime.reset(); // Start game timer.
+        //clawArmEncoder.goTo(20);
         clawServos.RotateLeft();
+        getPUp.setPosition(0);
+        clawArmEncoder.goTo(0);
+      //  controller.goTo(0,0);
         if (isStopRequested()) return;
         while(opModeIsActive() && !isStopRequested()) {
 
@@ -131,26 +135,19 @@ public class RRTeleOp extends LinearOpMode {
                 telemetry.update();
             }
             if(gamepad2.dpad_up) {
-                controller.goTo(4500,4500);
+                controller.goTo(4900,5000);
+            }
+            if(armMotorLeft.getCurrentPosition()==5000 && armMotorRight.getCurrentPosition()==5000) {
+                telemetry.addData("Position", "ok");
             }
             if(gamepad2.dpad_down) {
                 controller.goTo(0,0);
             }
-//            if(gamepad2.x) {
-//                ballServos.startInv();
-//            } else {
-//                ballServos.Stop();
-//            }
-//            if(gamepad2.a) {
-//               ballServos.Start();
-//            } else {
-//                ballServos.Stop();
-//            }
             if(gamepad2.x) {
-                armServos.SwitchAndWaitContinuousInv(1,getRuntime());
+                ballServos.SwitchAndWaitContinuousInv(1,getRuntime());
             }
             if(gamepad2.a) {
-                armServos.SwitchAndWaitContinuous(1,getRuntime());
+                ballServos.SwitchAndWaitContinuous(1,getRuntime());
             }
             if(gamepad2.y) {
                 clawServos.SwitchAndWaitClosed(1,getRuntime());
@@ -165,7 +162,7 @@ public class RRTeleOp extends LinearOpMode {
                 airLockServos.rotateClose();
             }
             if(gamepad2.left_stick_button) {
-                getPUp.setPosition(1);
+                getPUp.setPosition(0.4);
             }
             if(gamepad2.right_stick_button) {
                 getPUp.setPosition(0);

@@ -33,6 +33,8 @@ public class OpenCVCameraTest extends OpenCvPipeline {
             new Point(200,75)
     );
 
+
+
     static double PERCENT_COLOR_THRESHOLD = 0.4;
 
     public OpenCVCameraTest(Telemetry t) { telemetry = t; }

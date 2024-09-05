@@ -28,7 +28,7 @@ public class ClawServos {
         rotateStatus = true;
     }
     public void RotateCenter() {
-        rotateServo.setPosition(0.5);
+        rotateServo.setPosition(0.35);
         rotateStatus = false;
     }
     public void SwitchRotate() {

@@ -1,14 +1,20 @@
 package org.firstinspires.ftc.teamcode.Orig.Autonomous;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.teamcode.Functions.ArmEncoder;
 import org.firstinspires.ftc.teamcode.Functions.GamepadCalc;
+import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.ClawArmEncoder;
+import org.firstinspires.ftc.teamcode.Orig.TeleOp.Functions.ClawServos;
 import org.firstinspires.ftc.teamcode.RoadRunner.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.RoadRunner.drive.advanced.PoseStorage;
+import org.firstinspires.ftc.teamcode.RoadRunner.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
@@ -16,26 +22,22 @@ import java.util.List;
 
 @Autonomous(name = "AutoYellowGreen", group = "ORIG")
 public class RRAutonomousYellowGreen extends LinearOpMode {
-    //Declare webcam
-    private String webcamName = "Webcam";
-    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
-    private static final String TFOD_MODEL_FILE =  "/sdcard/FIRST/tflitemodels/prop.tflite";
-    private static final String[] LABELS = {
-            "Left", "Center", "Right"
-    };
-    private TfodProcessor tfod;
 
     //Declare motors
     private DcMotor leftMotor, rightMotor, leftMotorBack, rightMotorBack;
     private DcMotor armMotorLeft, armMotorRight;
+    private DcMotor clawMotor;
+
+    //Declare servos
+    private Servo closeClaw, rotateClaw;
 
     //Declare classes
     private ArmEncoder controller;
+    private ClawArmEncoder clawArmEncoder;
+    private ClawServos clawServos;
 
     //Other declarations
-    String detection = "";
     GamepadCalc gamepadCalc;
-    VisionPortal visionPortal;
 
     public void runOpMode() throws InterruptedException {
         //init motors chasis
@@ -48,10 +50,18 @@ public class RRAutonomousYellowGreen extends LinearOpMode {
         armMotorLeft = hardwareMap.dcMotor.get("SL");
         armMotorRight = hardwareMap.dcMotor.get("SR");
 
+        //claw motor
+        clawMotor = hardwareMap.dcMotor.get("CM");
+
+        //init servos
+        closeClaw = hardwareMap.servo.get("CS");
+        rotateClaw = hardwareMap.servo.get("RS");
+
         //init classes
         controller = new ArmEncoder(armMotorLeft, armMotorRight);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
         gamepadCalc = new GamepadCalc(this);
+        clawServos = new ClawServos(closeClaw, rotateClaw);
 
         //chasis motors mode
         rightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -65,48 +75,19 @@ public class RRAutonomousYellowGreen extends LinearOpMode {
 
 
         while (!isStarted()) {
-            telemetryTfod();
+            //telemetryTfod();
             // Push telemetry to the Driver Station.
             telemetry.update();
         }
-        visionPortal.close();
+       // visionPortal.close();
         waitForStart();
-        if(opModeIsActive()) {
+        TrajectorySequence trajectory1RL = drive.trajectorySequenceBuilder(new Pose2d(12, 62, Math.toRadians(-90)))
+                .addDisplacementMarker(() -> {
+                    clawArmEncoder.goTo(20);
+                    clawServos.RotateCenter();
+                                        
+                })
 
-        }
     }
 
-    //Tfod function
-    private void telemetryTfod() {
-        List<Recognition> currentRecognitions = tfod.getRecognitions();
-        if (!currentRecognitions.isEmpty()) {
-            // Assuming the model returns only one classification result for the whole image
-            Recognition classification = currentRecognitions.get(0);
-
-            // Get the image width from the recognition object (assuming it's the same as the camera resolution you set)
-            int imageWidth = 640; // For example, if your camera resolution is set to 640x480
-
-            // Calculate the midpoint of the detected object
-            float objectMidpoint = (classification.getLeft() + classification.getRight()) / 2;
-
-            // Determine the position of the object
-            String position;
-            if (objectMidpoint < imageWidth / 3) {
-                position = "Left";
-                detection = "l";
-            } else if (objectMidpoint < (2 * imageWidth / 3)) {
-                position = "Center";
-                detection = "c";
-            } else {
-                position = "Right";
-                detection = "r";
-            }
-
-            telemetry.addData("Classified Image", "%s (%.0f %% Conf.)",
-                    classification.getLabel(), classification.getConfidence() * 100);
-            telemetry.addData("Position", position);
-        } else {
-            telemetry.addData("No Classification", "");
-        }
-    }  // end method telemetryTfod()
 }

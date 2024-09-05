@@ -70,10 +70,10 @@ ArmEncoder {
         armMotorRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         double powerLeft = PIDControl(armLeftTarget, armMotorLeft.getCurrentPosition());
-        double powerRight = PIDControl(armRightTarget, armMotorRight.getCurrentPosition());
+        //double powerRight = PIDControl(armRightTarget, armMotorRight.getCurrentPosition());
 
-        armMotorLeft.setPower(1);
-        armMotorRight.setPower(1);
+        armMotorLeft.setPower(powerLeft);
+        armMotorRight.setPower(powerLeft);
     }
 
 

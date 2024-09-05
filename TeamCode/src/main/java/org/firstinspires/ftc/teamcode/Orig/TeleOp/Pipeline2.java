@@ -16,24 +16,25 @@ public class Pipeline2 extends OpenCvPipeline {
     Mat mat = new Mat();
     public enum Location {
         LEFT,
-        MID,
+        MID,///vXjJvKkvSU
         RIGHT
     }
 
     private volatile Location location = Location.LEFT;
 
     //dreapta
-    static final Rect RIGHT_ROI = new Rect(
-            new Point(700, 450), //cresti y merge in jos patratu
-            new Point(765, 395));
-    //stanga
-    static final Rect LEFT_ROI = new Rect(
-            new Point(200, 450),
-            new Point(250, 395));
-    static double PERCENT_COLOR_THRESHOLD = 0.4;
+//    static final Rect RIGHT_ROI = new Rect(
+//            new Point(700, 450), //cresti y merge in jos patratu
+//            new Point(765, 395));
+//    //stanga
+//    static final Rect LEFT_ROI = new Rect(
+//            new Point(200, 450),
+//            new Point(250, 395));
+    static double PERCENT_COLOR_THRESHOLD = 0.1;
 
     //187 207
-
+    static final Rect LEFT_ROI = new Rect(1,1,213,479);
+    static final Rect RIGHT_ROI = new Rect(426,1,213,479);
 
     public Pipeline2(Telemetry t)
     {
@@ -43,13 +44,12 @@ public class Pipeline2 extends OpenCvPipeline {
     @Override
     public Mat processFrame(Mat input) {
 
-
-
-
         Imgproc.cvtColor(input, mat, Imgproc.COLOR_RGB2HSV);
 
         Scalar lowHSV = new Scalar(83.6, 90.7, 0);
+        //Scalar lowHSV = new Scalar(235,55,41);
         Scalar highHSV = new Scalar(121.8, 177.1, 106.3);
+      //  Scalar highHSV = new Scalar(232,59,10);
 
         Core.inRange(mat, lowHSV, highHSV, mat);
 
@@ -75,15 +75,15 @@ public class Pipeline2 extends OpenCvPipeline {
 
         if (!midCase && !rightCase) {
             location = Location.LEFT;
-            telemetry.addData("Nivel rata", location);
+            telemetry.addData("Locatie: ", location);
         }
         else if (rightCase) {
             location = Location.RIGHT;
-            telemetry.addData("Nivel rata", location);
+            telemetry.addData("Locatie: ", location);
         }
         else{
             location = Location.MID;
-            telemetry.addData("Nivel rata", location);
+            telemetry.addData("Locatie: ", location);
         }
         telemetry.update();
 

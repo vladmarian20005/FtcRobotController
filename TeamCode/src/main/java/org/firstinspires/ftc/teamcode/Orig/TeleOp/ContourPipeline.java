@@ -23,8 +23,8 @@ public class ContourPipeline extends OpenCvPipeline {
 //    public static Scalar scalarLowerYCrCb = new Scalar(0.0, 137, 50);
 //    public static Scalar scalarUpperYCrCb = new Scalar(61, 137, 120);
 
-    public static Scalar scalarLowerYCrCb = new Scalar(  0.0, 50, 100.0);
-    public static Scalar scalarUpperYCrCb = new Scalar(37, 140, 124);
+    public static Scalar scalarLowerYCrCb = new Scalar(  32, 167, 127.0);
+    public static Scalar scalarUpperYCrCb = new Scalar(25, 148, 127);
     // Yellow, freight or ducks!
     //public static Scalar scalarLowerYCrCb = new Scalar(0.0, 100.0, 0.0);
     //public static Scalar scalarUpperYCrCb = new Scalar(255.0, 170.0, 120.0);
