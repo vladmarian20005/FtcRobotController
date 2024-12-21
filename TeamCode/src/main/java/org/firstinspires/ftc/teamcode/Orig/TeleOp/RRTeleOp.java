@@ -6,8 +6,10 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.Functions.ArmEncoder;
 import org.firstinspires.ftc.teamcode.Functions.ArmServos;
@@ -32,15 +34,25 @@ public class RRTeleOp extends LinearOpMode {
     private static final double DRIVE_GEAR_RATIO = 1.0;    // Direct drive
 
     // Viper slide extension motors
-    private DcMotor armMotorLeft, armMotorRight;
+    private DcMotorEx armMotorLeft, armMotorRight;
 
     // Viper slide rotation motors
-    private DcMotor rotateMotorLeft, rotateMotorRight;
-//    private DcMotor clawArmMotor;
+    private DcMotorEx rotateMotorLeft, rotateMotorRight;
 
     // Intake servos
     private Servo leftAxleServo, rightAxleServo;      // Servos for rotating the intake axle
     private Servo leftGeckoServo, rightGeckoServo;    // Servos for Gecko wheels
+
+
+    // PID and timing variables (consolidated)
+    private ElapsedTime runtime = new ElapsedTime();
+    private double movement;
+
+    // Initialize controller classes
+    private ArmEncoder controller;
+    private SampleMecanumDrive drive;
+    private GamepadCalc gamepadCalc;
+
 
     // Constants for viper slide positions
     private static final int SLIDES_LOW_POSITION = 0;
@@ -96,33 +108,6 @@ public class RRTeleOp extends LinearOpMode {
     private double lastSlidePower = 0;
     private double lastRotationPower = 0;
 
-    //Declare servos
-    private CRServo leftBall, rightBall;
-    private Servo airLock1, airLock2;
-    private Servo getPUp;
-    private Servo closeClaw, rotateClaw;
-
-    //Other declarations
-    double integralSum = 0;
-    public static double Kp = 0;
-    public static double Ki = 0;
-    public static double Kd = 0;
-    public static double Kf = 2;
-    double movement;
-    ElapsedTime timer = new ElapsedTime();
-    private double lastError = 0;
-    private ElapsedTime runtime = new ElapsedTime();
-
-
-    //declare classes
-    private ArmEncoder controller;
-    private BallServos ballServos;
-    private ClawServos clawServos;
-    private AirLockServos airLockServos;
-    private ClawArmEncoder clawArmEncoder;
-    private ArmServos armServos;
-
-    GamepadCalc gamepadCalc;
 
     // State machine enums
     private enum SlideState {
@@ -154,73 +139,25 @@ public class RRTeleOp extends LinearOpMode {
     private int targetRotationPosition = 0;
 
 
-
+    @Override
     public void runOpMode() throws InterruptedException {
         int tickAdjustment = 100;
 
-        // Initialize drive motors
-        leftMotor = hardwareMap.dcMotor.get("FL");
-        rightMotor = hardwareMap.dcMotor.get("FR");
-        leftMotorBack = hardwareMap.dcMotor.get("BL");
-        rightMotorBack = hardwareMap.dcMotor.get("BR");
-
-        // Initialize viper slide motors
-        armMotorLeft = hardwareMap.dcMotor.get("SL");
-        armMotorRight = hardwareMap.dcMotor.get("SR");
-
-        // Initialize rotation motors
-        rotateMotorLeft = hardwareMap.dcMotor.get("RL");
-        rotateMotorRight = hardwareMap.dcMotor.get("RR");
-
-        // Initialize intake servos
-        leftAxleServo = hardwareMap.servo.get("LA");    // Left Axle servo
-        rightAxleServo = hardwareMap.servo.get("RA");   // Right Axle servo
-        leftGeckoServo = hardwareMap.servo.get("LG");   // Left Gecko wheel
-        rightGeckoServo = hardwareMap.servo.get("RG");  // Right Gecko wheel
-//        //init servos
-//        leftBall = hardwareMap.crservo.get("LB");
-//        rightBall = hardwareMap.crservo.get("RB");
-//        airLock1 = hardwareMap.servo.get("AL1");
-//        airLock2 = hardwareMap.servo.get("AL2");
-//        getPUp = hardwareMap.servo.get("PU");
-//        closeClaw = hardwareMap.servo.get("CS");
-//        rotateClaw = hardwareMap.servo.get("RS");
-
-        //init classes
-        controller = new ArmEncoder(armMotorLeft, armMotorRight);
-        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
-        gamepadCalc = new GamepadCalc(this);
-        ballServos = new BallServos(leftBall,rightBall);
-        clawServos = new ClawServos(closeClaw,rotateClaw);
-        airLockServos = new AirLockServos(airLock1,airLock2);
-        clawArmEncoder = new ClawArmEncoder(clawArmMotor);
-        armServos = new ArmServos(leftBall,rightBall);
+        // Initialize hardware
+        initializeHardware();
 
         // Configure motor behaviors
         setupMotors();
-
-//        rightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//        rightMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//        leftMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-//        leftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
 
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         drive.setPoseEstimate(PoseStorage.currentPose);
 
         waitForStart();
-
-        runtime.reset(); // Start game timer.
-        //clawArmEncoder.goTo(20);
-//        clawServos.RotateLeft();
-//        getPUp.setPosition(0);
-//        clawArmEncoder.goTo(0);
-      //  controller.goTo(0,0);
+        runtime.reset();
 
         if (isStopRequested()) return;
 
         while(opModeIsActive() && !isStopRequested()) {
-
             gamepadCalc.calculate();
             movement = gamepadCalc.getGamepad1().left_trigger - gamepadCalc.getGamepad1().right_trigger;
 
@@ -230,63 +167,40 @@ public class RRTeleOp extends LinearOpMode {
             handleIntake();
             updateTelemetry();
             drive.update();
-//            drive.update();
 
-            if(gamepad2.right_bumper)
-            {
+            if(gamepad2.right_bumper) {
                 drive.setPoseEstimate(PoseStorage.currentPose);
                 telemetry.addData("Heading reseted to: ", PoseStorage.currentPose);
                 telemetry.update();
             }
-//            if(gamepad2.dpad_up) {
-//                controller.goTo(4900,5000);
-//            }
-//            if(gamepad2.dpad_down) {
-//                controller.goTo(0,0);
-//            }
-//            if(armMotorLeft.getCurrentPosition()==5000 && armMotorRight.getCurrentPosition()==5000) {
-//                telemetry.addData("Position", "ok");
-//            }
-//            if(gamepad2.x) {
-//                ballServos.SwitchAndWaitContinuousInv(1,getRuntime());
-//            }
-//            if(gamepad2.a) {
-//                ballServos.SwitchAndWaitContinuous(1,getRuntime());
-//            }
-//            if(gamepad2.y) {
-//                clawServos.SwitchAndWaitClosed(1,getRuntime());
-//            }
-//            if(gamepad2.b) {
-//                clawServos.SwitchAndWaitRotate(1,getRuntime());
-//            }
-//            if(gamepad2.left_bumper) {
-//                airLockServos.rotateOpen();
-//            }
-//            if(gamepad2.right_bumper) {
-//                airLockServos.rotateClose();
-//            }
-//            if(gamepad2.left_stick_button) {
-//                getPUp.setPosition(0.4);
-//            }
-//            if(gamepad2.right_stick_button) {
-//                getPUp.setPosition(0);
-//            }
-
-
-//            if(gamepad1.dpad_left) {
-//                clawArmEncoder.goTo(100);
-//            }
-//            if(gamepad1.dpad_up) {
-//                clawArmEncoder.goTo(200);
-//            }
-//            if(gamepad1.dpad_right) {
-//                clawArmEncoder.goTo(300);
-//            }
-//            if(gamepad1.dpad_down) {
-//                clawArmEncoder.goTo(0);
-//            }
-
         }
+    }
+
+    private void initializeHardware() {
+        // Initialize drive motors
+        leftMotor = hardwareMap.dcMotor.get("FL");
+        rightMotor = hardwareMap.dcMotor.get("FR");
+        leftMotorBack = hardwareMap.dcMotor.get("BL");
+        rightMotorBack = hardwareMap.dcMotor.get("BR");
+
+        // Initialize viper slide motors
+        armMotorLeft = hardwareMap.get(DcMotorEx.class, "SL");
+        armMotorRight = hardwareMap.get(DcMotorEx.class, "SR");
+
+        // Initialize rotation motors
+        rotateMotorLeft = hardwareMap.get(DcMotorEx.class, "RL");
+        rotateMotorRight = hardwareMap.get(DcMotorEx.class, "RR");
+
+        // Initialize intake servos
+        leftAxleServo = hardwareMap.servo.get("LA");    // Left Axle servo
+        rightAxleServo = hardwareMap.servo.get("RA");   // Right Axle servo
+        leftGeckoServo = hardwareMap.servo.get("LG");   // Left Gecko wheel
+        rightGeckoServo = hardwareMap.servo.get("RG");  // Right Gecko wheel
+
+        // Initialize controller classes
+        controller = new ArmEncoder(armMotorLeft, armMotorRight);
+        drive = new SampleMecanumDrive(hardwareMap);
+        gamepadCalc = new GamepadCalc(this);
     }
 
     private void setupMotors() {
@@ -341,6 +255,7 @@ public class RRTeleOp extends LinearOpMode {
         // Manual control with gamepad2 left stick
         double slidePower = -gamepad2.left_stick_y;
         boolean isManualControl = Math.abs(slidePower) > 0.1;
+        double safePower = Range.clip(slidePower, -SLIDES_MAX_POWER, SLIDES_MAX_POWER);
         boolean isPresetRequested = gamepad2.dpad_up || gamepad2.dpad_right || gamepad2.dpad_down;
         int currentPosition = (armMotorLeft.getCurrentPosition() + armMotorRight.getCurrentPosition()) / 2;
 
@@ -351,19 +266,24 @@ public class RRTeleOp extends LinearOpMode {
             return;
         }
 
-
-
-        // Check motor currents
-        double leftCurrent = armMotorLeft.getCurrent(CurrentUnit.AMPS);
-        double rightCurrent = armMotorRight.getCurrent(CurrentUnit.AMPS);
-
-        if (leftCurrent > CURRENT_LIMIT_SLIDES || rightCurrent > CURRENT_LIMIT_SLIDES) {
-            isOverCurrentProtected = true;
-            armMotorLeft.setPower(0);
-            armMotorRight.setPower(0);
+        // Check for overcurrent protection
+        if (isOverCurrentProtected) {
+            stopSlides();
             telemetry.addData("WARNING", "Slide motors current limit exceeded!");
             return;
         }
+
+//        // Check motor currents
+//        double leftCurrent = armMotorLeft.getCurrent();
+//        double rightCurrent = armMotorRight.getCurrent();
+//
+//        if (leftCurrent > CURRENT_LIMIT_SLIDES || rightCurrent > CURRENT_LIMIT_SLIDES) {
+//            isOverCurrentProtected = true;
+//            armMotorLeft.setPower(0);
+//            armMotorRight.setPower(0);
+//            telemetry.addData("WARNING", "Slide motors current limit exceeded!");
+//            return;
+//        }
 
         // Position limits
         if (currentPosition > SLIDES_MAX_POSITION && slidePower > 0) {
@@ -376,22 +296,62 @@ public class RRTeleOp extends LinearOpMode {
         }
 
         // Apply power with safety limits
-        double safePower = Range.clip(slidePower, -SLIDES_MAX_POWER, SLIDES_MAX_POWER);
         if (Math.abs(safePower - lastSlidePower) > 0.5) {
             // Smooth sudden power changes
             safePower = (safePower + lastSlidePower) / 2;
         }
 
-        // Preset positions
-        if (gamepad2.dpad_up) {
-            moveViperSlidesTo(SLIDES_HIGH_POSITION);
+        // State machine for slides
+        switch (slideState) {
+            case IDLE:
+                if (isManualControl) {
+                    slideState = SlideState.MANUAL_CONTROL;
+                } else if (isPresetRequested) {
+                    slideState = SlideState.MOVING_TO_POSITION;
+                    if (gamepad2.dpad_up) targetSlidePosition = SLIDES_HIGH_POSITION;
+                    if (gamepad2.dpad_right) targetSlidePosition = SLIDES_MEDIUM_POSITION;
+                    if (gamepad2.dpad_down) targetSlidePosition = SLIDES_LOW_POSITION;
+                }
+                break;
+
+            case MANUAL_CONTROL:
+                if (!isManualControl) {
+                    slideState = SlideState.IDLE;
+                    stopSlides();
+                } else {
+                    double smoothedPower = getSmoothedSlidePower(slidePower);
+                    applySlidePower(smoothedPower);
+                }
+                break;
+
+            case MOVING_TO_POSITION:
+                if (isManualControl) {
+                    slideState = SlideState.MANUAL_CONTROL;
+                } else if (isAtTargetPosition()) {
+                    slideState = SlideState.IDLE;
+                    stopSlides();
+                } else {
+                    moveToTargetPosition();
+                }
+                break;
+
+            case ERROR:
+                if (!checkCurrentLimits()) {
+                    slideState = SlideState.IDLE;
+                }
+                break;
         }
-        if (gamepad2.dpad_right) {
-            moveViperSlidesTo(SLIDES_MEDIUM_POSITION);
-        }
-        if (gamepad2.dpad_down) {
-            moveViperSlidesTo(SLIDES_LOW_POSITION);
-        }
+
+//        // Preset positions
+//        if (gamepad2.dpad_up) {
+//            moveViperSlidesTo(SLIDES_HIGH_POSITION);
+//        }
+//        if (gamepad2.dpad_right) {
+//            moveViperSlidesTo(SLIDES_MEDIUM_POSITION);
+//        }
+//        if (gamepad2.dpad_down) {
+//            moveViperSlidesTo(SLIDES_LOW_POSITION);
+//        }
         if(armMotorLeft.getCurrentPosition()==5000 && armMotorRight.getCurrentPosition()==5000) {
             telemetry.addData("Slider Pos: ", "ok");
         }
@@ -409,12 +369,13 @@ public class RRTeleOp extends LinearOpMode {
 
     private void handleRotation() {
         double rotatePower = -gamepad2.right_stick_y * ROTATION_MAX_POWER; // Reduced power for more control
+        double safePower = Range.clip(rotatePower, -ROTATION_MAX_POWER, ROTATION_MAX_POWER);
         int currentRotation = (rotateMotorLeft.getCurrentPosition() + rotateMotorRight.getCurrentPosition()) / 2;
         int slidePosition = (armMotorLeft.getCurrentPosition() + armMotorRight.getCurrentPosition()) / 2;
 
         // Check motor currents
-        double leftCurrent = rotateMotorLeft.getCurrent(CurrentUnit.AMPS);
-        double rightCurrent = rotateMotorRight.getCurrent(CurrentUnit.AMPS);
+        double leftCurrent = rotateMotorLeft.getCurrent();
+        double rightCurrent = rotateMotorRight.getCurrent();
 
         if (leftCurrent > CURRENT_LIMIT_ROTATION || rightCurrent > CURRENT_LIMIT_ROTATION) {
             isOverCurrentProtected = true;
@@ -439,7 +400,6 @@ public class RRTeleOp extends LinearOpMode {
         }
 
         // Smooth power application
-        double safePower = Range.clip(rotatePower, -ROTATION_MAX_POWER, ROTATION_MAX_POWER);
         if (Math.abs(safePower - lastRotationPower) > 0.3) {
             safePower = (safePower + lastRotationPower) / 2;
         }
@@ -534,50 +494,12 @@ public class RRTeleOp extends LinearOpMode {
         return Math.min(Math.max(output, -1), 1);  // Clamp output between -1 and 1
     }
 
-    // State machine for slides
-        switch (slideState) {
-        case IDLE:
-            if (isManualControl) {
-                slideState = SlideState.MANUAL_CONTROL;
-            } else if (isPresetRequested) {
-                slideState = SlideState.MOVING_TO_POSITION;
-                if (gamepad2.dpad_up) targetSlidePosition = SLIDES_HIGH_POSITION;
-                else if (gamepad2.dpad_right) targetSlidePosition = SLIDES_MEDIUM_POSITION;
-                else if (gamepad2.dpad_down) targetSlidePosition = SLIDES_LOW_POSITION;
-            }
-            break;
 
-        case MANUAL_CONTROL:
-            if (!isManualControl) {
-                slideState = SlideState.IDLE;
-                stopSlides();
-            } else {
-                applySlidePower(getSmoothedSlidePower(slidePower));
-            }
-            break;
-
-        case MOVING_TO_POSITION:
-            if (isManualControl) {
-                slideState = SlideState.MANUAL_CONTROL;
-            } else if (isAtTargetPosition()) {
-                slideState = SlideState.IDLE;
-                stopSlides();
-            } else {
-                moveToTargetPosition();
-            }
-            break;
-
-        case ERROR:
-            if (!checkCurrentLimits()) {
-                slideState = SlideState.IDLE;
-            }
-            break;
-    }
 
     // Helper methods to clean up the state machine
     private boolean checkCurrentLimits() {
-        double leftCurrent = armMotorLeft.getCurrent(CurrentUnit.AMPS);
-        double rightCurrent = armMotorRight.getCurrent(CurrentUnit.AMPS);
+        double leftCurrent = armMotorLeft.getCurrent();
+        double rightCurrent = armMotorRight.getCurrent();
         return leftCurrent > CURRENT_LIMIT_SLIDES || rightCurrent > CURRENT_LIMIT_SLIDES;
     }
 
@@ -625,10 +547,10 @@ public class RRTeleOp extends LinearOpMode {
         telemetry.addData("Right Axle Position", rightAxleServo.getPosition());
         telemetry.addData("Left Gecko Position", leftGeckoServo.getPosition());
         telemetry.addData("Right Gecko Position", rightGeckoServo.getPosition());
-        telemetry.addData("Left Slide Current", armMotorLeft.getCurrent(CurrentUnit.AMPS));
-        telemetry.addData("Right Slide Current", armMotorRight.getCurrent(CurrentUnit.AMPS));
-        telemetry.addData("Left Rotation Current", rotateMotorLeft.getCurrent(CurrentUnit.AMPS));
-        telemetry.addData("Right Rotation Current", rotateMotorRight.getCurrent(CurrentUnit.AMPS));
+        telemetry.addData("Left Slide Current", armMotorLeft.getCurrent());
+        telemetry.addData("Right Slide Current", armMotorRight.getCurrent());
+        telemetry.addData("Left Rotation Current", rotateMotorLeft.getCurrent());
+        telemetry.addData("Right Rotation Current", rotateMotorRight.getCurrent());
 
         if (isOverCurrentProtected) {
             telemetry.addLine("⚠️ OVERCURRENT PROTECTION ACTIVE ⚠️");
