@@ -17,9 +17,10 @@ apply from: '../build.dependencies.gradle'
 
 android {
 
+
     packagingOptions {
         jniLibs {
-            pickFirsts += ['**/*.so']
+            pickFirsts += ['**/*.so', '**/*.so']
         }
     }
     namespace = 'org.firstinspires.ftc.teamcode'
