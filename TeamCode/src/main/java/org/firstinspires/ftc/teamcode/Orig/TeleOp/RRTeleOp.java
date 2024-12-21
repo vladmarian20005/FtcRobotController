@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorEx.CurrentUnit;
+//import com.qualcomm.robotcore.hardware.DcMotorEx.CurrentUnit;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -260,11 +260,11 @@ public class RRTeleOp extends LinearOpMode {
         int currentPosition = (armMotorLeft.getCurrentPosition() + armMotorRight.getCurrentPosition()) / 2;
 
         // Check current limits first
-        if (checkCurrentLimits()) {
-            slideState = SlideState.ERROR;
-            stopSlides();
-            return;
-        }
+//        if (checkCurrentLimits()) {
+//            slideState = SlideState.ERROR;
+//            stopSlides();
+//            return;
+//        }
 
         // Check for overcurrent protection
         if (isOverCurrentProtected) {
@@ -319,9 +319,9 @@ public class RRTeleOp extends LinearOpMode {
                 break;
 
             case ERROR:
-                if (!checkCurrentLimits()) {
-                    slideState = SlideState.IDLE;
-                }
+//                if (!checkCurrentLimits()) {
+//                    slideState = SlideState.IDLE;
+//                }
                 break;
         }
 
@@ -339,12 +339,12 @@ public class RRTeleOp extends LinearOpMode {
         int slidePosition = (armMotorLeft.getCurrentPosition() + armMotorRight.getCurrentPosition()) / 2;
 
         // Check current limits first
-        if (checkRotationCurrentLimits()) {
-            rotationState = RotationState.ERROR;
-            stopRotation();
-            telemetry.addData("WARNING", "Rotation motors current limit exceeded!");
-            return;
-        }
+//        if (checkRotationCurrentLimits()) {
+//            rotationState = RotationState.ERROR;
+//            stopRotation();
+//            telemetry.addData("WARNING", "Rotation motors current limit exceeded!");
+//            return;
+//        }
 
         // Check for overcurrent protection
         if (isOverCurrentProtected) {
@@ -403,9 +403,9 @@ public class RRTeleOp extends LinearOpMode {
                 break;
 
             case ERROR:
-                if (!checkRotationCurrentLimits()) {
-                    rotationState = RotationState.IDLE;
-                }
+//                if (!checkRotationCurrentLimits()) {
+//                    rotationState = RotationState.IDLE;
+//                }
                 break;
         }
     }
@@ -487,17 +487,17 @@ public class RRTeleOp extends LinearOpMode {
         return Range.clip(output, -1, 1);  // Clamp output between -1 and 1
     }
 
-    private boolean checkCurrentLimits() {
-        double leftCurrent = armMotorLeft.getCurrent();  // Just use getCurrent() directly
-        double rightCurrent = armMotorRight.getCurrent();
-        return leftCurrent > CURRENT_LIMIT_SLIDES || rightCurrent > CURRENT_LIMIT_SLIDES;
-    }
-
-    private boolean checkRotationCurrentLimits() {
-        double leftCurrent = rotateMotorLeft.getCurrent();
-        double rightCurrent = rotateMotorRight.getCurrent();
-        return leftCurrent > CURRENT_LIMIT_ROTATION || rightCurrent > CURRENT_LIMIT_ROTATION;
-    }
+//    private boolean checkCurrentLimits() {
+//        double leftCurrent = armMotorLeft.getCurrent();  // Just use getCurrent() directly
+//        double rightCurrent = armMotorRight.getCurrent();
+//        return leftCurrent > CURRENT_LIMIT_SLIDES || rightCurrent > CURRENT_LIMIT_SLIDES;
+//    }
+//
+//    private boolean checkRotationCurrentLimits() {
+//        double leftCurrent = rotateMotorLeft.getCurrent();
+//        double rightCurrent = rotateMotorRight.getCurrent();
+//        return leftCurrent > CURRENT_LIMIT_ROTATION || rightCurrent > CURRENT_LIMIT_ROTATION;
+//    }
 
     private void stopSlides() {
         armMotorLeft.setPower(0);
@@ -568,10 +568,10 @@ public class RRTeleOp extends LinearOpMode {
         telemetry.addData("Right Axle Position", rightAxleServo.getPosition());
         telemetry.addData("Left Gecko Position", leftGeckoServo.getPosition());
         telemetry.addData("Right Gecko Position", rightGeckoServo.getPosition());
-        telemetry.addData("Left Slide Current", armMotorLeft.getCurrent());
-        telemetry.addData("Right Slide Current", armMotorRight.getCurrent());
-        telemetry.addData("Left Rotation Current", rotateMotorLeft.getCurrent());
-        telemetry.addData("Right Rotation Current", rotateMotorRight.getCurrent());
+//        telemetry.addData("Left Slide Current", armMotorLeft.getCurrent());
+//        telemetry.addData("Right Slide Current", armMotorRight.getCurrent());
+//        telemetry.addData("Left Rotation Current", rotateMotorLeft.getCurrent());
+//        telemetry.addData("Right Rotation Current", rotateMotorRight.getCurrent());
 
         if (isOverCurrentProtected) {
             telemetry.addLine("⚠️ OVERCURRENT PROTECTION ACTIVE ⚠️");
