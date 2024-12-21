@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorEx.CurrentUnit;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -255,7 +256,6 @@ public class RRTeleOp extends LinearOpMode {
         // Manual control with gamepad2 left stick
         double slidePower = -gamepad2.left_stick_y;
         boolean isManualControl = Math.abs(slidePower) > 0.1;
-        double safePower = Range.clip(slidePower, -SLIDES_MAX_POWER, SLIDES_MAX_POWER);
         boolean isPresetRequested = gamepad2.dpad_up || gamepad2.dpad_right || gamepad2.dpad_down;
         int currentPosition = (armMotorLeft.getCurrentPosition() + armMotorRight.getCurrentPosition()) / 2;
 
@@ -273,18 +273,6 @@ public class RRTeleOp extends LinearOpMode {
             return;
         }
 
-//        // Check motor currents
-//        double leftCurrent = armMotorLeft.getCurrent();
-//        double rightCurrent = armMotorRight.getCurrent();
-//
-//        if (leftCurrent > CURRENT_LIMIT_SLIDES || rightCurrent > CURRENT_LIMIT_SLIDES) {
-//            isOverCurrentProtected = true;
-//            armMotorLeft.setPower(0);
-//            armMotorRight.setPower(0);
-//            telemetry.addData("WARNING", "Slide motors current limit exceeded!");
-//            return;
-//        }
-
         // Position limits
         if (currentPosition > SLIDES_MAX_POSITION && slidePower > 0) {
             slidePower = 0;
@@ -295,11 +283,6 @@ public class RRTeleOp extends LinearOpMode {
             telemetry.addData("WARNING", "Minimum position reached!");
         }
 
-        // Apply power with safety limits
-        if (Math.abs(safePower - lastSlidePower) > 0.5) {
-            // Smooth sudden power changes
-            safePower = (safePower + lastSlidePower) / 2;
-        }
 
         // State machine for slides
         switch (slideState) {
@@ -342,45 +325,30 @@ public class RRTeleOp extends LinearOpMode {
                 break;
         }
 
-//        // Preset positions
-//        if (gamepad2.dpad_up) {
-//            moveViperSlidesTo(SLIDES_HIGH_POSITION);
-//        }
-//        if (gamepad2.dpad_right) {
-//            moveViperSlidesTo(SLIDES_MEDIUM_POSITION);
-//        }
-//        if (gamepad2.dpad_down) {
-//            moveViperSlidesTo(SLIDES_LOW_POSITION);
-//        }
+        // Position telemetry can stay if needed
         if(armMotorLeft.getCurrentPosition()==5000 && armMotorRight.getCurrentPosition()==5000) {
             telemetry.addData("Slider Pos: ", "ok");
-        }
-        if (Math.abs(slidePower) > 0.1) {
-            // Manual control
-            armMotorLeft.setPower(slidePower);
-            armMotorRight.setPower(slidePower);
-            lastSlidePower = safePower;
-        } else {
-            // Hold position using minimal power
-            armMotorLeft.setPower(0);
-            armMotorRight.setPower(0);
         }
     }
 
     private void handleRotation() {
-        double rotatePower = -gamepad2.right_stick_y * ROTATION_MAX_POWER; // Reduced power for more control
-        double safePower = Range.clip(rotatePower, -ROTATION_MAX_POWER, ROTATION_MAX_POWER);
+        double rotatePower = -gamepad2.right_stick_y * ROTATION_MAX_POWER;
+        boolean isManualControl = Math.abs(rotatePower) > 0.1;
+        boolean isPresetRequested = gamepad2.left_bumper || gamepad2.right_bumper || gamepad2.left_trigger > 0.5;
         int currentRotation = (rotateMotorLeft.getCurrentPosition() + rotateMotorRight.getCurrentPosition()) / 2;
         int slidePosition = (armMotorLeft.getCurrentPosition() + armMotorRight.getCurrentPosition()) / 2;
 
-        // Check motor currents
-        double leftCurrent = rotateMotorLeft.getCurrent();
-        double rightCurrent = rotateMotorRight.getCurrent();
+        // Check current limits first
+        if (checkRotationCurrentLimits()) {
+            rotationState = RotationState.ERROR;
+            stopRotation();
+            telemetry.addData("WARNING", "Rotation motors current limit exceeded!");
+            return;
+        }
 
-        if (leftCurrent > CURRENT_LIMIT_ROTATION || rightCurrent > CURRENT_LIMIT_ROTATION) {
-            isOverCurrentProtected = true;
-            rotateMotorLeft.setPower(0);
-            rotateMotorRight.setPower(0);
+        // Check for overcurrent protection
+        if (isOverCurrentProtected) {
+            stopRotation();
             telemetry.addData("WARNING", "Rotation motors current limit exceeded!");
             return;
         }
@@ -399,30 +367,46 @@ public class RRTeleOp extends LinearOpMode {
             telemetry.addData("WARNING", "Rotation limit reached!");
         }
 
-        // Smooth power application
-        if (Math.abs(safePower - lastRotationPower) > 0.3) {
-            safePower = (safePower + lastRotationPower) / 2;
-        }
+        // State machine for rotation
+        switch (rotationState) {
+            case IDLE:
+                stopRotation();
+                if (isManualControl) {
+                    rotationState = RotationState.MANUAL_CONTROL;
+                } else if (isPresetRequested) {
+                    rotationState = RotationState.MOVING_TO_POSITION;
+                    if (gamepad2.left_bumper) targetRotationPosition = ROTATION_HORIZONTAL;
+                    if (gamepad2.right_bumper) targetRotationPosition = ROTATION_VERTICAL;
+                    if (gamepad2.left_trigger > 0.5) targetRotationPosition = ROTATION_45_DEGREES;
+                }
+                break;
 
-        rotateMotorLeft.setPower(safePower);
-        rotateMotorRight.setPower(safePower);
-        lastRotationPower = safePower;
+            case MANUAL_CONTROL:
+                if (!isManualControl) {
+                    rotationState = RotationState.IDLE;
+                    stopRotation();
+                } else {
+                    double smoothedPower = getSmoothedRotationPower(rotatePower);
+                    applyRotationPower(smoothedPower);
+                }
+                break;
 
-        // Preset positions using bumpers and triggers
-        if (gamepad2.left_bumper) {
-            rotateViperSlidesTo(ROTATION_HORIZONTAL);  // Horizontal position
-        } else if (gamepad2.right_bumper) {
-            rotateViperSlidesTo(ROTATION_VERTICAL);    // Vertical position
-        } else if (gamepad2.left_trigger > 0.5) {
-            rotateViperSlidesTo(ROTATION_45_DEGREES);  // 45-degree position
-        } else if (Math.abs(rotatePower) > 0.1) {
-            // Manual control
-            rotateMotorLeft.setPower(rotatePower);
-            rotateMotorRight.setPower(rotatePower);
-        } else {
-            // Hold position
-            rotateMotorLeft.setPower(0);
-            rotateMotorRight.setPower(0);
+            case MOVING_TO_POSITION:
+                if (isManualControl) {
+                    rotationState = RotationState.MANUAL_CONTROL;
+                } else if (isAtRotationTarget()) {
+                    rotationState = RotationState.IDLE;
+                    stopRotation();
+                } else {
+                    rotateViperSlidesTo(targetRotationPosition);
+                }
+                break;
+
+            case ERROR:
+                if (!checkRotationCurrentLimits()) {
+                    rotationState = RotationState.IDLE;
+                }
+                break;
         }
     }
 
@@ -473,34 +457,46 @@ public class RRTeleOp extends LinearOpMode {
     }
 
     private void rotateViperSlidesTo(int targetPosition) {
+        // Safety bounds check
+        targetPosition = Range.clip(targetPosition, ROTATION_HORIZONTAL, ROTATION_VERTICAL);
+
         int currentPosition = (rotateMotorLeft.getCurrentPosition() + rotateMotorRight.getCurrentPosition()) / 2;
         double power = calculatePID(targetPosition, currentPosition, ROTATION_P, ROTATION_I, ROTATION_D,
                 rotationTimer, lastRotationError, rotationIntegralSum);
 
-        rotateMotorLeft.setPower(power);
-        rotateMotorRight.setPower(power);
+        // Update PID variables
+        lastRotationError = currentPosition - targetPosition;
+
+        // Apply power with safety limit
+        power = Range.clip(power, -ROTATION_MAX_POWER, ROTATION_MAX_POWER);
+        if (!isOverCurrentProtected) {
+            applyRotationPower(power);
+        }
     }
 
     private double calculatePID(double reference, double state, double kP, double kI, double kD,
                                 ElapsedTime timer, double lastError, double integralSum) {
         double error = reference - state;
-        integralSum += error * timer.seconds();
-        double derivative = (error - lastError) / timer.seconds();
-        lastError = error;
+        double deltaTime = timer.seconds();
+        integralSum += error * deltaTime;
+        double derivative = (error - lastError) / deltaTime;
 
         timer.reset();
 
         double output = (error * kP) + (derivative * kD) + (integralSum * kI);
-        return Math.min(Math.max(output, -1), 1);  // Clamp output between -1 and 1
+        return Range.clip(output, -1, 1);  // Clamp output between -1 and 1
     }
 
-
-
-    // Helper methods to clean up the state machine
     private boolean checkCurrentLimits() {
-        double leftCurrent = armMotorLeft.getCurrent();
+        double leftCurrent = armMotorLeft.getCurrent();  // Just use getCurrent() directly
         double rightCurrent = armMotorRight.getCurrent();
         return leftCurrent > CURRENT_LIMIT_SLIDES || rightCurrent > CURRENT_LIMIT_SLIDES;
+    }
+
+    private boolean checkRotationCurrentLimits() {
+        double leftCurrent = rotateMotorLeft.getCurrent();
+        double rightCurrent = rotateMotorRight.getCurrent();
+        return leftCurrent > CURRENT_LIMIT_ROTATION || rightCurrent > CURRENT_LIMIT_ROTATION;
     }
 
     private void stopSlides() {
@@ -536,6 +532,31 @@ public class RRTeleOp extends LinearOpMode {
                 SLIDES_P, SLIDES_I, SLIDES_D,
                 slidesTimer, lastSlidesError, slidesIntegralSum);
         applySlidePower(Range.clip(power, -SLIDES_MAX_POWER, SLIDES_MAX_POWER));
+    }
+
+    private void stopRotation() {
+        rotateMotorLeft.setPower(0);
+        rotateMotorRight.setPower(0);
+    }
+
+    private void applyRotationPower(double power) {
+        rotateMotorLeft.setPower(power);
+        rotateMotorRight.setPower(power);
+    }
+
+    private double getSmoothedRotationPower(double rawPower) {
+        double safePower = Range.clip(rawPower, -ROTATION_MAX_POWER, ROTATION_MAX_POWER);
+        if (Math.abs(safePower - lastRotationPower) > 0.3) {
+            safePower = (safePower + lastRotationPower) / 2;
+        }
+        lastRotationPower = safePower;
+        return safePower;
+    }
+
+    private boolean isAtRotationTarget() {
+        int currentPosition = (rotateMotorLeft.getCurrentPosition() +
+                rotateMotorRight.getCurrentPosition()) / 2;
+        return Math.abs(currentPosition - targetRotationPosition) < 10;
     }
 
     private void updateTelemetry() {
