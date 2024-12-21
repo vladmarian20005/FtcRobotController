@@ -67,6 +67,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   <string translatable="false" name="pref_ftc_season_year_of_current_rc">pref_ftc_season_year_of_current_rc_new</string>
 
-  <string name="packageName">@string/packageNameRobotController</string>
+    <string name="packageName">com.qualcomm.ftcrobotcontroller</string>
 
 </resources>

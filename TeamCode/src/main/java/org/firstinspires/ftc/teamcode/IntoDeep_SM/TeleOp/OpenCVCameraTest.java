@@ -1,8 +1,4 @@
-package org.firstinspires.ftc.teamcode.Orig.TeleOp;
-
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
-
-import android.graphics.Color;
+package org.firstinspires.ftc.teamcode.IntoDeep_SM.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.opencv.core.Core;
