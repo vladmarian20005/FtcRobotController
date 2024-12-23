@@ -1,4 +1,6 @@
 package org.firstinspires.ftc.teamcode.IntoDeep_SM.TeleOp;
+import org.firstinspires.ftc.teamcode.config.RobotConfig;
+import static org.firstinspires.ftc.teamcode.config.RobotConfig.HardwareConfig;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
@@ -18,6 +20,9 @@ import org.firstinspires.ftc.teamcode.RoadRunner.drive.advanced.PoseStorage;
 
 @TeleOp(name="RRTeleOpIntoDeep", group = "IntoDeep_SM")
 public class RRTeleOp extends LinearOpMode {
+    // Load motor config
+    private RobotConfig config;
+
     //Declare motors
 
     // Drive motors (GoBilda Yellow Jacket)
@@ -172,28 +177,45 @@ public class RRTeleOp extends LinearOpMode {
     }
 
     private void initializeHardware() {
+        config = new RobotConfig(hardwareMap);
+
         // Initialize drive motors
-        leftMotor = hardwareMap.dcMotor.get("FL");
-        rightMotor = hardwareMap.dcMotor.get("FR");
-        leftMotorBack = hardwareMap.dcMotor.get("BL");
-        rightMotorBack = hardwareMap.dcMotor.get("BR");
+//        leftMotor = hardwareMap.dcMotor.get("FL");
+//        rightMotor = hardwareMap.dcMotor.get("FR");
+//        leftMotorBack = hardwareMap.dcMotor.get("BL");
+//        rightMotorBack = hardwareMap.dcMotor.get("BR");
+        leftMotor = config.getMotorIfEnabled("FL", HardwareConfig.ENABLE_FL);
+        rightMotor = config.getMotorIfEnabled("FR", HardwareConfig.ENABLE_FR);
+        leftMotorBack = config.getMotorIfEnabled("BL", HardwareConfig.ENABLE_BL);
+        rightMotorBack = config.getMotorIfEnabled("BR", HardwareConfig.ENABLE_BR);
 
         // Initialize viper slide motors
-        armMotorLeft = hardwareMap.get(DcMotorEx.class, "SL");
-        armMotorRight = hardwareMap.get(DcMotorEx.class, "SR");
+//        armMotorLeft = hardwareMap.get(DcMotorEx.class, "SL");
+//        armMotorRight = hardwareMap.get(DcMotorEx.class, "SR");
+        armMotorLeft = config.getMotorExIfEnabled("SL", HardwareConfig.ENABLE_SLIDE_LEFT);
+        armMotorRight = config.getMotorExIfEnabled("SR", HardwareConfig.ENABLE_SLIDE_RIGHT);
 
         // Initialize rotation motors
-        rotateMotorLeft = hardwareMap.get(DcMotorEx.class, "RL");
-        rotateMotorRight = hardwareMap.get(DcMotorEx.class, "RR");
+//        rotateMotorLeft = hardwareMap.get(DcMotorEx.class, "RL");
+//        rotateMotorRight = hardwareMap.get(DcMotorEx.class, "RR");
+        rotateMotorLeft = config.getMotorExIfEnabled("RL", HardwareConfig.ENABLE_ROTATE_LEFT);
+        rotateMotorRight = config.getMotorExIfEnabled("RR", HardwareConfig.ENABLE_ROTATE_RIGHT);
+
 
         // Initialize intake servos
 //        leftAxleServo = hardwareMap.servo.get("LA");    // Left Axle servo
 //        rightAxleServo = hardwareMap.servo.get("RA");   // Right Axle servo
 //        leftGeckoServo = hardwareMap.servo.get("LG");   // Left Gecko wheel
 //        rightGeckoServo = hardwareMap.servo.get("RG");  // Right Gecko wheel
+        leftAxleServo = config.getServoIfEnabled("LA", HardwareConfig.ENABLE_LEFT_AXLE);
+        rightAxleServo = config.getServoIfEnabled("RA", HardwareConfig.ENABLE_RIGHT_AXLE);
+        leftGeckoServo = config.getServoIfEnabled("LG", HardwareConfig.ENABLE_LEFT_GECKO);
+        rightGeckoServo = config.getServoIfEnabled("RG", HardwareConfig.ENABLE_RIGHT_GECKO);
 
         // Initialize controller classes
-        controller = new ArmEncoder(armMotorLeft, armMotorRight);
+        if (armMotorLeft != null && armMotorRight != null) {
+            controller = new ArmEncoder(armMotorLeft, armMotorRight);
+        }
         drive = new SampleMecanumDrive(hardwareMap);
         gamepadCalc = new GamepadCalc(this);
     }
@@ -405,25 +427,35 @@ public class RRTeleOp extends LinearOpMode {
     }
 
     private void handleIntake() {
+        // Early returns if servos disabled
+        if (!(HardwareConfig.ENABLE_LEFT_AXLE && HardwareConfig.ENABLE_RIGHT_AXLE)) {
+            return;
+        }
+
         // Axle rotation control using gamepad2 buttons
         if (gamepad2.x) {  // Intake position
-//            leftAxleServo.setPosition(AXLE_INTAKE_POSITION);
-//            rightAxleServo.setPosition(1 - AXLE_INTAKE_POSITION);  // Reverse for opposite side
+            leftAxleServo.setPosition(AXLE_INTAKE_POSITION);
+            rightAxleServo.setPosition(1 - AXLE_INTAKE_POSITION);  // Reverse for opposite side
         } else if (gamepad2.y) {  // Deposit position
-//            leftAxleServo.setPosition(AXLE_DEPOSIT_POSITION);
-//            rightAxleServo.setPosition(1 - AXLE_DEPOSIT_POSITION);  // Reverse for opposite side
+            leftAxleServo.setPosition(AXLE_DEPOSIT_POSITION);
+            rightAxleServo.setPosition(1 - AXLE_DEPOSIT_POSITION);  // Reverse for opposite side
+        }
+
+        // Early return for gecko servos
+        if (!(HardwareConfig.ENABLE_LEFT_GECKO && HardwareConfig.ENABLE_RIGHT_GECKO)) {
+            return;
         }
 
         // Gecko wheel control using right trigger for intake, left trigger for outtake
         if (gamepad2.right_trigger > 0.1) {  // Intake
-//            leftGeckoServo.setPosition(GECKO_WHEEL_INTAKE);
-//            rightGeckoServo.setPosition(1 - GECKO_WHEEL_INTAKE);  // Reverse for opposite direction
+            leftGeckoServo.setPosition(GECKO_WHEEL_INTAKE);
+            rightGeckoServo.setPosition(1 - GECKO_WHEEL_INTAKE);  // Reverse for opposite direction
         } else if (gamepad2.left_trigger > 0.1) {  // Outtake
-//            leftGeckoServo.setPosition(GECKO_WHEEL_OUTTAKE);
-//            rightGeckoServo.setPosition(1 - GECKO_WHEEL_OUTTAKE);  // Reverse for opposite direction
+            leftGeckoServo.setPosition(GECKO_WHEEL_OUTTAKE);
+            rightGeckoServo.setPosition(1 - GECKO_WHEEL_OUTTAKE);  // Reverse for opposite direction
         } else {  // Stop
-//            leftGeckoServo.setPosition(GECKO_WHEEL_STOP);
-//            rightGeckoServo.setPosition(GECKO_WHEEL_STOP);
+            leftGeckoServo.setPosition(GECKO_WHEEL_STOP);
+            rightGeckoServo.setPosition(GECKO_WHEEL_STOP);
         }
     }
 
@@ -558,10 +590,10 @@ public class RRTeleOp extends LinearOpMode {
         telemetry.addData("Right Slide Position", armMotorRight.getCurrentPosition());
         telemetry.addData("Left Rotation Position", rotateMotorLeft.getCurrentPosition());
         telemetry.addData("Right Rotation Position", rotateMotorRight.getCurrentPosition());
-//        telemetry.addData("Left Axle Position", leftAxleServo.getPosition());
-//        telemetry.addData("Right Axle Position", rightAxleServo.getPosition());
-//        telemetry.addData("Left Gecko Position", leftGeckoServo.getPosition());
-//        telemetry.addData("Right Gecko Position", rightGeckoServo.getPosition());
+        telemetry.addData("Left Axle Position", leftAxleServo.getPosition());
+        telemetry.addData("Right Axle Position", rightAxleServo.getPosition());
+        telemetry.addData("Left Gecko Position", leftGeckoServo.getPosition());
+        telemetry.addData("Right Gecko Position", rightGeckoServo.getPosition());
 //        telemetry.addData("Left Slide Current", armMotorLeft.getCurrent());
 //        telemetry.addData("Right Slide Current", armMotorRight.getCurrent());
 //        telemetry.addData("Left Rotation Current", rotateMotorLeft.getCurrent());
