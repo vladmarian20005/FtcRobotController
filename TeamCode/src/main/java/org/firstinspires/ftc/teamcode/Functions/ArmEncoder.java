@@ -34,10 +34,10 @@ ArmEncoder {
         armRightPos = 0;
     }
 
-    public ArmEncoder(DcMotor _AML, DcMotor _AMR)
+    public ArmEncoder(DcMotor AML, DcMotor AMR)
     {
-        armMotorLeft= _AML;
-        armMotorRight= _AMR;
+        armMotorLeft= AML;
+        armMotorRight= AMR;
         Init();
     }
 
@@ -70,13 +70,9 @@ ArmEncoder {
         armMotorRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         double powerLeft = PIDControl(armLeftTarget, armMotorLeft.getCurrentPosition());
-        //double powerRight = PIDControl(armRightTarget, armMotorRight.getCurrentPosition());
+        double powerRight = PIDControl(armRightTarget, armMotorRight.getCurrentPosition());
 
         armMotorLeft.setPower(powerLeft);
-        armMotorRight.setPower(powerLeft);
+        armMotorRight.setPower(powerRight);
     }
-
-
-
-
 }

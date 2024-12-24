@@ -190,14 +190,10 @@ public class RRTeleOp extends LinearOpMode {
         rightMotorBack = config.getMotorIfEnabled("BR", HardwareConfig.ENABLE_BR);
 
         // Initialize viper slide motors
-//        armMotorLeft = hardwareMap.get(DcMotorEx.class, "SL");
-//        armMotorRight = hardwareMap.get(DcMotorEx.class, "SR");
         armMotorLeft = config.getMotorExIfEnabled("SL", HardwareConfig.ENABLE_SLIDE_LEFT);
         armMotorRight = config.getMotorExIfEnabled("SR", HardwareConfig.ENABLE_SLIDE_RIGHT);
 
         // Initialize rotation motors
-//        rotateMotorLeft = hardwareMap.get(DcMotorEx.class, "RL");
-//        rotateMotorRight = hardwareMap.get(DcMotorEx.class, "RR");
         rotateMotorLeft = config.getMotorExIfEnabled("RL", HardwareConfig.ENABLE_ROTATE_LEFT);
         rotateMotorRight = config.getMotorExIfEnabled("RR", HardwareConfig.ENABLE_ROTATE_RIGHT);
 
@@ -221,35 +217,42 @@ public class RRTeleOp extends LinearOpMode {
     }
 
     private void setupMotors() {
-        // Drive motors setup - GoBilda configuration
-        leftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        // Drive motors setup
+        if (leftMotor != null && rightMotor != null && leftMotorBack != null && rightMotorBack != null) {
+            leftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            rightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            leftMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            rightMotorBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // Set GoBilda motor directions
-        leftMotor.setDirection(DcMotor.Direction.REVERSE);
-        leftMotorBack.setDirection(DcMotor.Direction.REVERSE);
-        rightMotor.setDirection(DcMotor.Direction.FORWARD);
-        rightMotorBack.setDirection(DcMotor.Direction.FORWARD);
+            leftMotor.setDirection(DcMotor.Direction.REVERSE);
+            leftMotorBack.setDirection(DcMotor.Direction.REVERSE);
+            rightMotor.setDirection(DcMotor.Direction.FORWARD);
+            rightMotorBack.setDirection(DcMotor.Direction.FORWARD);
+        }
 
-        // Viper slide extension motors setup
-        armMotorLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        armMotorRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        armMotorLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        armMotorRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        armMotorLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotorRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotorRight.setDirection(DcMotor.Direction.REVERSE);
+        // Viper slides
+        if (armMotorLeft != null && armMotorRight != null) {
+            armMotorLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            armMotorRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+            armMotorLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            armMotorRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+            armMotorLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            armMotorRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            armMotorRight.setDirection(DcMotor.Direction.REVERSE);
+        }
 
         // Rotation motors setup
-        rotateMotorLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rotateMotorRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rotateMotorLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rotateMotorRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rotateMotorLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rotateMotorRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rotateMotorRight.setDirection(DcMotor.Direction.REVERSE);  // Set opposite direction
+        if (rotateMotorLeft != null && rotateMotorRight != null) {
+            rotateMotorLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rotateMotorRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rotateMotorLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rotateMotorRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rotateMotorLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            rotateMotorRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            rotateMotorRight.setDirection(DcMotor.Direction.REVERSE);
+        }
     }
 
     private void handleDrive(SampleMecanumDrive drive) {
@@ -269,11 +272,26 @@ public class RRTeleOp extends LinearOpMode {
     }
 
     private void handleViperSlides() {
-        // Manual control with gamepad2 left stick
+        if (armMotorLeft == null || armMotorRight == null) return;
+
         double slidePower = -gamepad2.left_stick_y;
         boolean isManualControl = Math.abs(slidePower) > 0.1;
-        boolean isPresetRequested = gamepad2.dpad_up || gamepad2.dpad_right || gamepad2.dpad_down;
-        int currentPosition = (armMotorLeft.getCurrentPosition() + armMotorRight.getCurrentPosition()) / 2;
+
+        // Handle manual control
+        if (isManualControl) {
+            armMotorLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            armMotorRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            double smoothedPower = getSmoothedSlidePower(slidePower);
+            applySlidePower(smoothedPower);
+        }
+        // Handle presets
+        else if (gamepad2.dpad_up) {
+            controller.goTo(SLIDES_HIGH_POSITION, SLIDES_HIGH_POSITION);
+        } else if (gamepad2.dpad_right) {
+            controller.goTo(SLIDES_MEDIUM_POSITION, SLIDES_MEDIUM_POSITION);
+        } else if (gamepad2.dpad_down) {
+            controller.goTo(SLIDES_LOW_POSITION, SLIDES_LOW_POSITION);
+        }
 
         // Check current limits first
 //        if (checkCurrentLimits()) {
@@ -289,15 +307,15 @@ public class RRTeleOp extends LinearOpMode {
             return;
         }
 
-        // Position limits
-        if (currentPosition > SLIDES_MAX_POSITION && slidePower > 0) {
-            slidePower = 0;
-            telemetry.addData("WARNING", "Maximum extension reached!");
-        }
-        if (currentPosition < SLIDES_MIN_POSITION && slidePower < 0) {
-            slidePower = 0;
-            telemetry.addData("WARNING", "Minimum position reached!");
-        }
+//        // Position limits
+//        if (currentPosition > SLIDES_MAX_POSITION && slidePower > 0) {
+//            slidePower = 0;
+//            telemetry.addData("WARNING", "Maximum extension reached!");
+//        }
+//        if (currentPosition < SLIDES_MIN_POSITION && slidePower < 0) {
+//            slidePower = 0;
+//            telemetry.addData("WARNING", "Minimum position reached!");
+//        }
 
 
         // State machine for slides
@@ -305,12 +323,13 @@ public class RRTeleOp extends LinearOpMode {
             case IDLE:
                 if (isManualControl) {
                     slideState = SlideState.MANUAL_CONTROL;
-                } else if (isPresetRequested) {
-                    slideState = SlideState.MOVING_TO_POSITION;
-                    if (gamepad2.dpad_up) targetSlidePosition = SLIDES_HIGH_POSITION;
-                    if (gamepad2.dpad_right) targetSlidePosition = SLIDES_MEDIUM_POSITION;
-                    if (gamepad2.dpad_down) targetSlidePosition = SLIDES_LOW_POSITION;
                 }
+//                else if (isPresetRequested) {
+//                    slideState = SlideState.MOVING_TO_POSITION;
+//                    if (gamepad2.dpad_up) targetSlidePosition = SLIDES_HIGH_POSITION;
+//                    if (gamepad2.dpad_right) targetSlidePosition = SLIDES_MEDIUM_POSITION;
+//                    if (gamepad2.dpad_down) targetSlidePosition = SLIDES_LOW_POSITION;
+//                }
                 break;
 
             case MANUAL_CONTROL:
@@ -590,14 +609,20 @@ public class RRTeleOp extends LinearOpMode {
         telemetry.addData("Right Slide Position", armMotorRight.getCurrentPosition());
         telemetry.addData("Left Rotation Position", rotateMotorLeft.getCurrentPosition());
         telemetry.addData("Right Rotation Position", rotateMotorRight.getCurrentPosition());
-        telemetry.addData("Left Axle Position", leftAxleServo.getPosition());
-        telemetry.addData("Right Axle Position", rightAxleServo.getPosition());
-        telemetry.addData("Left Gecko Position", leftGeckoServo.getPosition());
-        telemetry.addData("Right Gecko Position", rightGeckoServo.getPosition());
-//        telemetry.addData("Left Slide Current", armMotorLeft.getCurrent());
-//        telemetry.addData("Right Slide Current", armMotorRight.getCurrent());
-//        telemetry.addData("Left Rotation Current", rotateMotorLeft.getCurrent());
-//        telemetry.addData("Right Rotation Current", rotateMotorRight.getCurrent());
+
+        // Only show servo positions if enabled
+        if (HardwareConfig.ENABLE_LEFT_AXLE) {
+            telemetry.addData("Left Axle Position", leftAxleServo.getPosition());
+        }
+        if (HardwareConfig.ENABLE_RIGHT_AXLE) {
+            telemetry.addData("Right Axle Position", rightAxleServo.getPosition());
+        }
+        if (HardwareConfig.ENABLE_LEFT_GECKO) {
+            telemetry.addData("Left Gecko Position", leftGeckoServo.getPosition());
+        }
+        if (HardwareConfig.ENABLE_RIGHT_GECKO) {
+            telemetry.addData("Right Gecko Position", rightGeckoServo.getPosition());
+        }
 
         if (isOverCurrentProtected) {
             telemetry.addLine("⚠️ OVERCURRENT PROTECTION ACTIVE ⚠️");
